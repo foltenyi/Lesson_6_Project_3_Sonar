@@ -212,6 +212,7 @@ while True:
     sonarDevices = 20
     theBoard = getNewBoard()  # theBoard[x][y]
     theChests = getRandomChests(3)  # Returns a set of 3 tuples (x,y)
+    chestsBackup = theChests.copy()
 
     # ???? Debug, add the chests
     # for x, y in theChests:
@@ -238,8 +239,10 @@ while True:
         print(moveResult)
 
         if len(theChests) == 0:
-            print(f'You have found all the sunken treasure chests! '
-                  f'{sonarDevices} sonar device(s) left')
+            print('You have found all the sunken treasure chests! They were: ', end='')
+            ls = list(chestsBackup); ls.sort()
+            print(f'{ls}'[1:-1])
+            print(f'{sonarDevices} sonar device(s) left')
             print('Congratulations and good game!')
             break
 
