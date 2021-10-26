@@ -1,5 +1,6 @@
 import math as m
 import random as ran
+import re
 import itertools as it
 
 import inspect
@@ -11,17 +12,55 @@ def fl() -> str:
     return f'{fi.function} {fi.lineno:3d}'  # fi.filename if needed
 
 
+def removeFrom_poss():
+    global farPoints, poss  # ible locations
+    # For farPoints delete the points from its neighbourhood in poss
+    possCopy = poss.copy()
+    ls = list(farPoints); ls.sort()
+    for X, Y in ls:
+        lposs = len(poss)
+        for x, y in possCopy:
+         # if round(m.sqrt((X-x)**2 + (Y-y)**2)) <= 9:
+            if (X-x)**2 + (Y-y)**2 < 94:
+                if (x, y) in poss:
+                    poss.remove((x, y))
+
+        if lposs - len(poss) > 0:
+            print(f'For ({X:2d}, {Y:2d}) {lposs-len(poss):3d} points deleted '
+                  f'from the possible points set')
+
+
 def manipulatePoints():
-    global points, circles
+    global points, circles, farPoints, poss  # ible locations
+    printed = False
     while True:
         if not input('Add/delete/list points (y/n)? : ').lower().startswith('y'):
             break  # and update circles
 
-        print("Any negative number in 'X' means: delete |n|th point; 'L' - list the points")
-        a = input('X {-n|L|(0-59)} [ Y (0-14) D {X|(1-9)} ]: ')
+        if not printed:
+            printed = True
+            print("Any negative number in 'X' means: delete |n|th point; 'L' - list the points")
+            print("Can be the points from sonar, e.g. '(1,2)=3 (44,55)=9 (66,77)=X (3,4)=X'")
+            print("If a Try point was already given, get another guess.")
+
+        a = input('X (0-59) [ Y (0-14) D {X|(1-9)} ]: ')
         a = a.split()  # At spaces
         if len(a) == 0:
             print('Please enter valid value.')
+            continue
+
+        if a[0].find('=') >= 0:
+            points = []
+            for p in a:
+                e = re.search('\((\d+),(\d+)\)=(\d+|X)', p)
+                x = int(e.group(1))
+                y = int(e.group(2))
+                if e.group(3) == 'X':
+                    farPoints.add((x, y))  # Duplicates will be ignoreed
+                else:
+                    d = int(e.group(3))
+                    points.append((x, y, d))
+            removeFrom_poss()
             continue
 
         X = a[0]
@@ -34,13 +73,15 @@ def manipulatePoints():
                 print("No points[]")
             else:
                 for i in range(len(points)):
-                    print(f"{i+1}. point = {points[i]}")
+                    _x, _y, _d = points[i]
+                    print(f"{i+1}. point = ({_x:2d}, {_y:2d}, {_d})")
             print()
             if len(farPoints) == 0:
                 print("No farPoints, with distance X")
             else:
-                for p in farPoints:
-                    print(f"farPoint {p}")
+                ls = list(farPoints); ls.sort()
+                for _x, _y in ls:
+                    print(f"farPoint ({_x:2d}, {_y:2d})")
             print()
             print(f'{len(poss) = }, the number of possible places')
             print()
@@ -60,14 +101,7 @@ def manipulatePoints():
                 print(f"'{Y=}' is not decimal"); continue
             X = int(X); Y = int(Y)
             farPoints.add((X, Y))
-            lposs = len(poss)
-            # And now delete the points from its neighbourhood in poss
-            possCopy = poss.copy()
-            for x, y in possCopy:
-                # if round(m.sqrt((X-x)**2 + (Y-y)**2)) <= 9:
-                if (X-x)**2 + (Y-y)**2 < 94:
-                    poss.remove((x, y))
-            print(f'{lposs - len(poss)} points deleted from the possible points set')
+            removeFrom_poss()
             continue
 
         # Add the point to points, if all are decimals, >= 0
@@ -80,6 +114,8 @@ def manipulatePoints():
 
         points.append((int(X), int(Y), int(D)))
 
+    # After 'while True' loop
+
     # Populate circles, for each point build a set of (x,y) tuples
     circles = []
     for X, Y, D in points:
@@ -90,11 +126,14 @@ def manipulatePoints():
                 if round(m.sqrt((X - x) ** 2 + (Y - y) ** 2)) == D:
                     s.add((x, y))
 
-        # This point is done, add the circle points
+        # This point is done, add to the circle points
         circles.append(s.copy())
+
+    removeFrom_poss()
 
 
 def getGuess():
+    global poss
     # Get the point from poss, which has the most points from poss closer or equal 9
     # which means ((X-x)**2 + (Y-y)**2) < 94, no need for sqrt. There is no number
     # between [90, 97] in the form i*i + j*j
@@ -115,7 +154,7 @@ def getGuess():
 
 def getSuggestions():
     # breakpoint()
-    global points, circles
+    global points, circles, farPoints, poss
     if len(points) != len(circles):
         breakpoint()
     if len(points) > 0:
@@ -133,11 +172,11 @@ def getSuggestions():
                 s = circles[cs[0]]
                 # print(f'{fl()} {s=}')  # ???? Debug
                 x, y, d = points[cs[0]]
-                print(f'{cs[0] + 1:2d}. Point ({x}, {y}), {d=}')
+                print(f'{cs[0] + 1:2d}. Point ({x:2d}, {y:2d}), {d=}')
                 # print(f'{fl()} {s=}')  # ???? Debug
                 for c in cs[1:]:
                     x, y, d = points[c]
-                    print(f'{c + 1:2d}. Point ({x}, {y}), {d=}')
+                    print(f'{c + 1:2d}. Point ({x:2d}, {y:2d}), {d=}')
                     s = s & circles[c]
                     # print(f'{fl()} {s=}')  # ???? Debug
 
@@ -193,12 +232,12 @@ while True:
 
         getSuggestions()
 
-        if input('Continue this game? (y/n): ').lower().startswith('y'):
+        if not input('Continue this game? (y/n): ').lower().startswith('n'):
             continue
         else:
             break
 
-    if input('Do you want another game? (y/n): ').lower().startswith('y'):
+    if not input('Do you want another game? (y/n): ').lower().startswith('n'):
         continue
     else:
         print('\nThanks for using this program, any suggestion is welcomed.')
