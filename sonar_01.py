@@ -255,6 +255,6 @@ while True:
         for x, y in theChests:
             print(f' {x}, {y}')
 
-    print('Do you want to play again? (yes or no)')
+    print('Do you want to play again? (yes or no): ')
     if not input().lower().startswith('y'):
         sys.exit()

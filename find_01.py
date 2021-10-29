@@ -13,10 +13,10 @@ def fl() -> str:
 
 
 def removeFrom_poss():
-    global farPoints, poss  # ible locations
+    global farPoints, poss  # possible locations
     # For farPoints delete the points from its neighbourhood in poss
     possCopy = poss.copy()
-    ls = list(farPoints); ls.sort()
+    ls = list(farPoints)
     for X, Y in ls:
         lposs = len(poss)
         for x, y in possCopy:
@@ -30,18 +30,25 @@ def removeFrom_poss():
                   f'from the possible points set')
 
 
-def manipulatePoints():
+def manipulatePoints() -> bool:
     global points, circles, farPoints, poss  # ible locations
     printed = False
     while True:
-        if not input('Add/delete/list points (y/n)? : ').lower().startswith('y'):
+        while True:
+            r = input('Add/delete/list points or quit this game (y/n/q)? : ').lower()
+            if r in {'y', 'n', 'q'}:
+                break
+
+        if r[0] == 'q':
+            return False
+
+        if r[0] != 'y':
             break  # and update circles
 
         if not printed:
             printed = True
             print("Any negative number in 'X' means: delete |n|th point; 'L' - list the points")
             print("Can be the points from sonar, e.g. '(1,2)=3 (44,55)=9 (66,77)=X (3,4)=X'")
-            print("If a Try point was already given, get another guess.")
 
         a = input('X (0-59) [ Y (0-14) D {X|(1-9)} ]: ')
         a = a.split()  # At spaces
@@ -52,15 +59,14 @@ def manipulatePoints():
         if a[0].find('=') >= 0:
             points = []
             for p in a:
-                e = re.search('\((\d+),(\d+)\)=(\d+|X)', p)
+                e = re.search('\(([0-9]+),([0-9]+)\)=([0-9]+|X)', p)
                 x = int(e.group(1))
                 y = int(e.group(2))
                 if e.group(3) == 'X':
-                    farPoints.add((x, y))  # Duplicates will be ignoreed
+                    farPoints.add((x, y))  # Duplicates will be ignored
                 else:
                     d = int(e.group(3))
                     points.append((x, y, d))
-            removeFrom_poss()
             continue
 
         X = a[0]
@@ -68,26 +74,24 @@ def manipulatePoints():
             i = int(X[1:])
             del points[i-1]
             continue
+
         if X.lower().startswith('l'):
             if len(points) == 0:
-                print("No points[]")
+                print("No points")
             else:
                 for i in range(len(points)):
                     _x, _y, _d = points[i]
                     print(f"{i+1}. point = ({_x:2d}, {_y:2d}, {_d})")
-            print()
             if len(farPoints) == 0:
                 print("No farPoints, with distance X")
             else:
                 ls = list(farPoints); ls.sort()
                 for _x, _y in ls:
                     print(f"farPoint ({_x:2d}, {_y:2d})")
-            print()
             print(f'{len(poss) = }, the number of possible places')
-            print()
             continue
 
-        if len(a) < 3:
+        if len(a) != 3:
             print('Please enter valid values for x, y, and distance.')
             continue
         Y = a[1]
@@ -100,8 +104,7 @@ def manipulatePoints():
             if not Y.isdecimal():
                 print(f"'{Y=}' is not decimal"); continue
             X = int(X); Y = int(Y)
-            farPoints.add((X, Y))
-            removeFrom_poss()
+            farPoints.add((X, Y))  # Points from poss will be deleted at the end of this function
             continue
 
         # Add the point to points, if all are decimals, >= 0
@@ -131,25 +134,35 @@ def manipulatePoints():
 
     removeFrom_poss()
 
+    return True
+
 
 def getGuess():
-    global poss
+    global points, farPoints, poss
     # Get the point from poss, which has the most points from poss closer or equal 9
     # which means ((X-x)**2 + (Y-y)**2) < 94, no need for sqrt. There is no number
     # between [90, 97] in the form i*i + j*j
-    # From the farthest points pick one randomly.
-    N = 0
+    # From the farthest points pick the first one, which was not used, yet.
+    ls = []
     for X, Y in poss:
         n = 0
         for x, y in poss:  # Simpler than get a square around (X,Y)
             if (X-x)**2 + (Y-y)**2 < 94:
                 n += 1
-        if N < n:  # The order in set poss gives some randomness
-            xy = []
-        if N <= n:
-            N = n; xy.append((X, Y))
+        ls.append((n, (X, Y)))
 
-    print(f'Try: {ran.choice(xy)}')
+    ls.sort(key=lambda a: a[0], reverse=True)  # Give it some randomness
+    ps = set(points) | farPoints
+    if len(ps) > 0:
+        for n, xy in ls:
+            if xy not in ps:
+                break
+    else:
+        n, xy = ran.choice(ls[:42])
+
+    print(f'Try: {xy}')
+
+    pass  # To set breakpoint
 
 
 def getSuggestions():
@@ -157,6 +170,8 @@ def getSuggestions():
     global points, circles, farPoints, poss
     if len(points) != len(circles):
         breakpoint()
+
+    somethingPrinted = False
     if len(points) > 0:
         # Create an index list, from which the combinations will be picked up
         np = []
@@ -164,7 +179,6 @@ def getSuggestions():
             np.append(i)
 
         # If we have more than one point, don't give individual circles
-        somethingPrinted = False
         for r in range(1 if len(np) > 1 else 0, len(np)):
             lc = list(it.combinations(np, r + 1))  # List of tuples r+1 size
             for cs in lc:
@@ -201,14 +215,11 @@ def getSuggestions():
                         if (x1 - x2)**2 + (y1 - y2)**2 < 94:
                             n += 1
                     res.append((n, (x1, y1)))
+
                 res.sort(reverse=True)
                 print(res)
                 if len(res) > 0:
                     somethingPrinted = True
-
-    else:
-        somethingPrinted = True
-        getGuess()
 
     if not somethingPrinted:
         getGuess()
@@ -216,6 +227,7 @@ def getSuggestions():
 
 while True:
     # breakpoint()  # ???? DEBUG, to set other breakpoints
+
     # points and circles are indexed together
     points = []  # List of points (X,Y,D) 1<=D<=9
     circles = []  # Each element is a set of points (x,y), which are D distance from a points[]
@@ -228,12 +240,9 @@ while True:
             poss.add((x, y))
 
     while True:
-        manipulatePoints()
-
-        getSuggestions()
-
-        if not input('Continue this game? (y/n): ').lower().startswith('n'):
-            continue
+        ret = manipulatePoints()  # False means quit this game
+        if ret:
+            getSuggestions()
         else:
             break
 
