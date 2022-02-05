@@ -25,13 +25,19 @@ def fl() -> str:
     fi = inspect.getframeinfo(inspect.currentframe().f_back)
     return f'{fi.function} {fi.lineno:3d}'  # fi.filename if needed
 
+class c:  # Gather the constants here
+    X = 60  # The board width
+    Y = 15  # its high
+    D =  9  # Max sensibility of the sonar
+
 
 def getNewBoard():
+    breakpoint() # ???? DO NOT FORGET TO COMMENT OUT ????
     # Create a new 60x15 board data structure.
     board = []
-    for x in range(60): # The main list is a list of 60 lists.
+    for x in range(c.X):  # The main list is a list of 60 lists.
         board.append([])
-        for y in range(15): # Each list in the main list has 15 single-character strings.
+        for y in range(c.Y):  # Each list in the main list has 15 single-character strings.
             # Use different characters for the ocean to make it more readable.
             char = '~' if random.randint(0, 1) == 0 else '`'
             board[x].append(char)
@@ -200,15 +206,17 @@ sonar devices. Good luck!
 Press enter to continue...''')
     input()
 
+# showInstructions() function end
 
-print('S O N A R !')
-print()
-print('Would you like to view the instructions? (yes/no): ')
-if input().lower().startswith('y'):
-    showInstructions()
+
+print('S O N A R !\n')
 
 while True:
     # Game setup
+    print('Would you like to view the instructions? (yes/no): ')
+    if input().lower().startswith('y'):
+        showInstructions()
+
     sonarDevices = 20
     theBoard = getNewBoard()  # theBoard[x][y]
     theChests = getRandomChests(3)  # Returns a set of 3 tuples (x,y)
