@@ -15,46 +15,48 @@
 #
 ###############################################################################
 
-import math as m
+import math
 import random as ran
 import re
+import copy  # To make deepcopy
 import itertools as it
+import inspect as ins  # Location in the program, members of a class
 
-import inspect  # Prints location in the program
+
 def ln() -> str:
-    fi = inspect.getframeinfo(inspect.currentframe().f_back)
+    fi = ins.getframeinfo(ins.currentframe().f_back)
     return f'{fi.lineno:3d}'
 def fl() -> str:
-    fi = inspect.getframeinfo(inspect.currentframe().f_back)
+    fi = ins.getframeinfo(ins.currentframe().f_back)
     return f'{fi.function} {fi.lineno:3d}'  # fi.filename if needed
 
-""" This works, e.g. c.D can be used as 9
-class _c:  # Gather the constants here
-    X = 60  # The board width
-    Y = 15  # its high
-    D =  9  # Max sensibility of the sonar
-c = _c()  # Simpler?
-"""
-class c:  # Gather the constants here
-    X = 60  # The board width
-    Y = 15  # its high
-    D =  9  # Max sensibility of the sonar
+
+class c:  # Gather the main parameters here, the variables not starting with '_' can be
+    # overwritten at the beginning
+    # Using only class variables
+    BOARD_WIDTH = 60  # The board width
+    BOARD_HIGH  = 15  # its high
+    _D = 9  # Max sensibility of the sonar, you can't mofify this
 
 
 def distance(dx, dy) -> int:
-    return round(m.sqrt(dx**2 + dy**2))
+    return round(math.sqrt(dx**2 + dy**2))
 
 
+# Removing the possible locations has 2 steps:
+# 1) those, which are <= c._D to a farPoint;
+# 2) those, which are < d to a tried point.
 def removeFrom_poss():
-    global c  # The constants
-    global farPoints, poss  # possible locations
+    global c  # The main parameters
+    global points, farPoints, poss  # possible locations
+
     # For farPoints delete the points from its neighbourhood in poss
     ls = list(farPoints)
     for X, Y in ls:
-        possCopy = poss.copy()
+        possCopy = copy.deepcopy(poss)  # Perhaps poss.copy() would be enough
         lposs = len(poss)
         for x, y in possCopy:
-            if distance((X-x), (Y-y)) <= c.D:
+            if distance((X-x), (Y-y)) <= c._D:
                 if (x, y) in poss:
                     poss.remove((x, y))
 
@@ -62,17 +64,30 @@ def removeFrom_poss():
             print(f'For ({X:2d}, {Y:2d}) {lposs-len(poss):3d} points deleted '
                   f'from the possible points set')
 
+    # For points delete the possible points which are < d, the closest chest
+    for X, Y, D in points:  # List of tuples in (x,y,d) form
+        possCopy = copy.deepcopy(poss)  # Perhaps poss.copy() would be enough
+        lposs = len(poss)
+        for x, y in possCopy:
+            if distance((X - x), (Y - y)) < D:
+                if (x, y) in poss:
+                    poss.remove((x, y))
 
-mainQuestion = 'Add/delete/list points or quit this game (y/n/q)? : '
+        if lposs - len(poss) > 0:
+            print(f'For ({X:2d}, {Y:2d}) {lposs - len(poss):3d} points deleted '
+                  f'from the possible points set')
+
+
+mainQuestion = 'Add/delete/list points (y), get hint (h), or quit (q): '
 
 def manipulatePoints() -> bool:
-    global c  # The constants
-    global points, circles, farPoints, poss  # ible locations
+    global c  # The main parameters
+    global points, circles, farPoints, poss  # ...ible locations
     printed = False
     while True:
         while True:
             r = input(mainQuestion).lower()
-            if r in {'y', 'n', 'q'}:
+            if r in {'y', 'h', 'q'}:
                 break
 
         if r[0] == 'q':
@@ -85,7 +100,7 @@ def manipulatePoints() -> bool:
             printed = True
             print("'L' - list the points")
             print("Any negative number, -n means: delete the nth point;")
-            print("Can be the point just entered, e.g. '15 5': '15 5 4' or '15 5 X'")
+            print("Can be the point just entered, e.g. '25 5': '25 5 4' or '25 5 X'")
             print("All points printed by Sonar, e.g.: '(14,8)=X (17,8)=9 (26,7)=1 (26,8)=2'")
 
         a = input('Enter one of the four kinds of input: ')
@@ -163,13 +178,13 @@ def manipulatePoints() -> bool:
     for X, Y, D in points:
         s = set()  # Points, which are D distance from (X,Y)
         # print(f'{X=} {Y=} {D=}')
-        for x in range(max(0, X - D), min(c.X, X + D + 1)):
-            for y in range(max(0, Y - D), min(c.Y, Y + D + 1)):
+        for x in range(max(0, X - D), min(c.BOARD_WIDTH, X + D + 1)):
+            for y in range(max(0, Y - D), min(c.BOARD_HIGH, Y + D + 1)):
                 if distance((X - x), (Y - y)) == D:
                     s.add((x, y))
 
         # This point is done, add to the circle points
-        circles.append(s.copy())
+        circles.append(copy.deepcopy(s))
 
     removeFrom_poss()
 
@@ -179,7 +194,7 @@ def manipulatePoints() -> bool:
 
 
 def getGuess():
-    global c  # The constants
+    global c  # The main parameters
     global points, farPoints, poss
     # Get the point from poss, which has the most points from poss closer or equal c.D.
     # From the farthest points pick the first one, which was not used, yet.
@@ -187,18 +202,18 @@ def getGuess():
     for X, Y in poss:
         n = 0
         for x, y in poss:
-            if distance((X-x), (Y-y)) <= c.D:
+            if distance((X-x), (Y-y)) <= c._D:
                 n += 1
         ls.append((n, (X, Y)))
 
-    ls.sort(key=lambda a: a[0], reverse=True)  # Give it some randomness
+    ls.sort(key=lambda a: a[0], reverse=True)  # Give it some randomness (exclude a[1])
     ps = set(points) | farPoints
     if len(ps) > 0:
         for n, xy in ls:
             if xy not in ps:
                 break
     else:
-        n, xy = ran.choice(ls[:(c.X-2*c.D)])
+        n, xy = ran.choice(ls[:(c.BOARD_WIDTH-2*c._D)])
 
     print(f'Try: {xy}')
 
@@ -238,7 +253,7 @@ def getSuggestions():
                 # Take out the points, if any, not in poss set
                 s = s & poss
                 # If any point in s is closer to any given point, delete it
-                sCopy = s.copy()
+                sCopy = copy.deepcopy(s)
                 # print(f'{fl()} {s=}')  # ???? Debug
                 for x1, y1 in sCopy:
                     for x2, y2, d in points:
@@ -253,7 +268,7 @@ def getSuggestions():
                 for x1, y1 in s:
                     n = 0
                     for x2, y2 in poss:
-                        if distance((x1 - x2), (y1 - y2)) <= c.D:
+                        if distance((x1 - x2), (y1 - y2)) <= c._D:
                             n += 1
                     res.append((n, (x1, y1)))
 
@@ -267,8 +282,8 @@ def getSuggestions():
 
 
 def instructions():
-    print(f"""Instructions:
-This program will help to locate the treasure chests. The program can be mistake,
+    print(f"""\nInstructions:
+This program will help to locate the treasure chests. The program can be mistaken,
 i.e. two close points say the chest is close by, the program assumes that they
 both refer to the same chest, but it could be two chests in an opposite directions.
 Picking up a wrong point is not a waste, it gives a lot of information for future guessing.
@@ -278,18 +293,20 @@ The distance between two points calculated this way, like in Sonar, everything i
 The main question is:
     {mainQuestion}
 y - you want to add a new point(s), delete one point, or list the points
-n - give me a hint which point to try
+h - give me a hint which point to try. The hints are printed out this way:
+    (p,(x,y)) - from point (x,y) p possible locations can be seen.
 q - quit this game
 
 If the answer was 'y' you can give a point in this way:
     x y d - e.g. 32 9 5 meaning that there is a chest from (32,9) distance 5
             or 43 5 X - there is no chest in the vicinity of point (43,5)
+            or in the form the current Sonar prints out, e.g.:
+            (15,7)=7 (15,8)=6 (20,7)=9 (22,2)=X (22,7)=X (22,12)=7 (34,7)=X
     L     - list the points already tried
     -n    - delete the nth point
     After a hit almost all the points have changed, it would be too tedious to delete
     and add many points. The current version of the Sonar game not only shows the
-    points, but prints them out, too, e.g.:
-        (1,2)=3 (44,14)=9 (46,7)=X (53,4)=X
+    points, but prints them out, too, see an example above.
     Just copy the whole line to the program, the points will be processed.
 
 Press enter to continue...""")
@@ -309,26 +326,41 @@ while True:
     if input().lower().startswith('y'):
         instructions()
 
+    print('You can modify the Board size')
+    for m in ins.getmembers(c):  # type(m)=tuple (name as string, value as it is)
+        if m[0][0] != '_':
+            p = f'{m[0]} = {m[1]} ... Keep it? (y/n): '  # Make a prompt
+            if input(p).lower().startswith('y'):
+                continue  # for m
+            # Get a new value
+            while True:  # To allow to correct a bad answer
+                v = input('Enter its new value: ')
+                if v.isdecimal():
+                    # Construct the statement
+                    exec(f'c.{m[0]}={v}')
+                    break  # Out from while True
+                else:  # Entered not decimal
+                    print('Please enter a decimal number.')
+
     # points and circles are indexed together
-    points = []  # List of points (X,Y,D) 1<=D<=9
+    points = []  # List of points (X,Y,D) 1<=D<=c._D
     circles = []  # Each element is a set of points (x,y), which are D distance from a points[]
 
     farPoints = set()  # Points where no chest is close by
     poss = set()  # All possible points, minus the points, which are <= c.D distance from farPoints
 
-    for y in range(c.Y):
-        for x in range(c.X):
+    for y in range(c.BOARD_HIGH):
+        for x in range(c.BOARD_WIDTH):
             poss.add((x, y))  # All points are candidates
 
-    while True:
+    ret = True
+    while ret:
         ret = manipulatePoints()  # False means quit this game
         if ret:
             getSuggestions()
-        else:
-            break
 
     if not input('Do you want another game? (y/n): ').lower().startswith('n'):
-        continue
+        continue  # From asking whether to see the instructions
     else:
         print('\nThanks for using this program, any suggestion is welcomed.')
         break
