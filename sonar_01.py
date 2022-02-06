@@ -32,7 +32,7 @@ class c:  # Gather the constants here
 
 
 def getNewBoard():
-    breakpoint() # ???? DO NOT FORGET TO COMMENT OUT ????
+    # breakpoint() # ???? DO NOT FORGET TO COMMENT OUT ????
     # Create a new 60x15 board data structure.
     board = []
     for x in range(c.X):  # The main list is a list of 60 lists.
