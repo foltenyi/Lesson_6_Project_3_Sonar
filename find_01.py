@@ -16,7 +16,6 @@
 ###############################################################################
 
 import math
-import random as ran
 import re
 import copy  # To make deepcopy
 import itertools as it
@@ -196,8 +195,7 @@ def manipulatePoints() -> bool:
 def getGuess():
     global c  # The main parameters
     global points, farPoints, poss
-    # Get the point from poss, which has the most points from poss closer or equal c.D.
-    # From the farthest points pick the first one, which was not used, yet.
+    # Get the point from poss, which has the most points from poss closer or equal to c._D.
     ls = []
     for X, Y in poss:
         n = 0
@@ -207,17 +205,7 @@ def getGuess():
         ls.append((n, (X, Y)))
 
     ls.sort(key=lambda a: a[0], reverse=True)  # Give it some randomness (exclude a[1])
-    ps = set(points) | farPoints
-    if len(ps) > 0:
-        for n, xy in ls:
-            if xy not in ps:
-                break
-    else:
-        n, xy = ran.choice(ls[:(c.BOARD_WIDTH-2*c._D)])
-
-    print(f'Try: {xy}')
-
-    pass  # To set breakpoint
+    print(f'Try: {ls[0]}')  # Print out the first one
 
 
 def getSuggestions():
@@ -230,42 +218,29 @@ def getSuggestions():
     somethingPrinted = False
     if len(points) > 0:
         # Create an index list, from which the combinations will be picked up
-        np = []
+        indexList = []  # 0,1,2,...
         for i in range(len(points)):
-            np.append(i)
+            indexList.append(i)
 
         # If we have more than one point, don't give individual circles
-        for r in range(1 if len(np) > 1 else 0, len(np)):
-            lc = list(it.combinations(np, r + 1))  # List of tuples r+1 size
+        for r in range(1 if len(indexList) > 1 else 0, len(indexList)):
+            lc = list(it.combinations(indexList, r + 1))  # List of tuples r+1 size
+
             for cs in lc:
                 # print(f'{fl()} {cs=}')  # ???? Debug
-                s = circles[cs[0]]  # set of tuples, points, around cs[0] point
-                # print(f'{fl()} {s=}')  # ???? Debug
-                x, y, d = points[cs[0]]  # Pick up the first point
-                print(f'{cs[0] + 1:2d}. Point ({x:2d}, {y:2d}), {d=}')
-                # print(f'{fl()} {s=}')  # ???? Debug
-                for ipt in cs[1:]:  # Pick up the remaining points
-                    x, y, d = points[ipt]
-                    print(f'{ipt + 1:2d}. Point ({x:2d}, {y:2d}), {d=}')
-                    s = s & circles[ipt]  # and - tuples in both places
-                    # print(f'{fl()} {s=}')  # ???? Debug
+                intersec = circles[cs[0]]  # set of tuples, points, around cs[0] point
+                for ipt in cs[1:]:  # Pick up the remaining points, if any
+                    intersec &= circles[ipt]  # and - tuples in both places
+                    # print(f'{fl()} {intersec=}')  # ???? Debug
 
                 # Take out the points, if any, not in poss set
-                s = s & poss
-                # If any point in s is closer to any given point, delete it
-                sCopy = copy.deepcopy(s)
-                # print(f'{fl()} {s=}')  # ???? Debug
-                for x1, y1 in sCopy:
-                    for x2, y2, d in points:
-                        if distance((x1-x2), (y1-y2)) < d:
-                            # print(f'{fl()} {sCopy=}  {s=}  ({x1},{y1})')  # ???? Debug
-                            s.remove((x1, y1))
-                            break  # Get the next point to check
-                # Probably doesn't help, wrote it as an exercise
-                # For each remaining points in s associate with the number in poss,
+                intersec &= poss
+
+                # Wrote it as an exercise
+                # For each remaining points in intersec associate with the number in poss,
                 # which are close enough.
                 res = []
-                for x1, y1 in s:
+                for x1, y1 in intersec:
                     n = 0
                     for x2, y2 in poss:
                         if distance((x1 - x2), (y1 - y2)) <= c._D:
@@ -273,9 +248,12 @@ def getSuggestions():
                     res.append((n, (x1, y1)))
 
                 res.sort(reverse=True)
-                print(str(res)[1:-1])  # Delete the '[]' around it
                 if len(res) > 0:
                     somethingPrinted = True
+                    for ipt in cs:  # There was some intersection for these points
+                        x, y, d = points[ipt]
+                        print(f'{ipt + 1:2d}. Point ({x:2d}, {y:2d}), {d=}')
+                    print(str(res)[1:-1])  # Delete the '[]' around it
 
     if not somethingPrinted:
         getGuess()
