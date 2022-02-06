@@ -220,6 +220,7 @@ while True:
     sonarDevices = 20
     theBoard = getNewBoard()  # theBoard[x][y]
     theChests = getRandomChests(3)  # Returns a set of 3 tuples (x,y)
+    # theChests = {(0,0), (59,1), (30,14)}  # ???? DEBUG
     chestsBackup = theChests.copy()
 
     # ???? Debug, add the chests
