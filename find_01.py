@@ -325,7 +325,9 @@ while True:
     circles = []  # Each element is a set of points (x,y), which are D distance from a points[]
 
     farPoints = set()  # Points where no chest is close by
-    poss = set()  # All possible points, minus the points, which are <= c.D distance from farPoints
+    poss = set()  # All possible points, minus the points,
+                  #     which are <= c._D distance from farPoints, and
+                  #     point closer than d, reported by Sonar (px, py, d)
 
     for y in range(c.BOARD_HIGH):
         for x in range(c.BOARD_WIDTH):
