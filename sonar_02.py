@@ -110,7 +110,7 @@ def drawBoard(board):
     global c  # The constants
     # Draw the board data structure.
     tensDigitsLine = ' '*5  # Initial space for the numbers the left side of the board
-    for i in range(1, int(c.BOARD_WIDTH/10)):
+    for i in range(1, int((c.BOARD_WIDTH-1)/10)+1):
         tensDigitsLine += (' ' * (10-len(str(i))) + str(i))
 
     # Print the numbers across the top of the board.

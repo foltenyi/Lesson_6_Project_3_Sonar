@@ -222,38 +222,48 @@ def getSuggestions():
         for i in range(len(points)):
             indexList.append(i)
 
-        # If we have more than one point, don't give individual circles
-        for r in range(1 if len(indexList) > 1 else 0, len(indexList)):
-            lc = list(it.combinations(indexList, r + 1))  # List of tuples r+1 size
+        startFrom0 = False
+        while True:
+            # If we have more than one point, don't give individual circles
+            strt = 0 if startFrom0 else (1 if len(indexList) > 1 else 0)
+            for r in range(strt, len(indexList)):
+                lc = list(it.combinations(indexList, r + 1))  # List of tuples r+1 size
 
-            for cs in lc:
-                # print(f'{fl()} {cs=}')  # ???? Debug
-                intersec = circles[cs[0]]  # set of tuples, points, around cs[0] point
-                for ipt in cs[1:]:  # Pick up the remaining points, if any
-                    intersec &= circles[ipt]  # and - tuples in both places
-                    # print(f'{fl()} {intersec=}')  # ???? Debug
+                for cs in lc:
+                    # print(f'{ln()} {cs=} {circles[cs[0]]=}')  # ???? Debug
+                    intersec = circles[cs[0]].copy()  # set of tuples, points, around cs[0] point
+                    for ipt in cs[1:]:  # Pick up the remaining points, if any
+                        # print(f'{ln()} {ipt=} {circles[ipt]=}')  # ???? Debug
+                        intersec &= circles[ipt]  # and - tuples in both places
+                        # print(f'{ln()} {cs[0]=} {circles[cs[0]]=}')  # ???? Debug
+                        # print(f'{fl()} {intersec=}')  # ???? Debug
 
-                # Take out the points, if any, not in poss set
-                intersec &= poss
+                    # Take out the points, if any, not in poss set
+                    intersec &= poss
 
-                # Wrote it as an exercise
-                # For each remaining points in intersec associate with the number in poss,
-                # which are close enough.
-                res = []
-                for x1, y1 in intersec:
-                    n = 0
-                    for x2, y2 in poss:
-                        if distance((x1 - x2), (y1 - y2)) <= c._D:
-                            n += 1
-                    res.append((n, (x1, y1)))
+                    # For each remaining points in intersec associate with the number in poss,
+                    # which are close enough.
+                    res = []
+                    for x1, y1 in intersec:
+                        n = 0
+                        for x2, y2 in poss:
+                            if distance((x1 - x2), (y1 - y2)) <= c._D:
+                                n += 1
+                        res.append((n, (x1, y1)))
 
-                res.sort(reverse=True)
-                if len(res) > 0:
-                    somethingPrinted = True
-                    for ipt in cs:  # There was some intersection for these points
-                        x, y, d = points[ipt]
-                        print(f'{ipt + 1:2d}. Point ({x:2d}, {y:2d}), {d=}')
-                    print(str(res)[1:-1])  # Delete the '[]' around it
+                    res.sort(reverse=True)
+                    if len(res) > 0:
+                        somethingPrinted = True
+                        for ipt in cs:  # There was some intersection for these points
+                            x, y, d = points[ipt]
+                            print(f'{ipt + 1:2d}. Point ({x:2d}, {y:2d}), {d=}')
+                        print(str(res)[1:-1])  # Delete the '[]' around it
+
+            # for r in range
+            if somethingPrinted:
+                break  # from while true
+            # There was no intersection among the points
+            startFrom0 = True  # ... and repeat the while True loop
 
     if not somethingPrinted:
         getGuess()

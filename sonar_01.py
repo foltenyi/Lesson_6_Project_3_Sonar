@@ -92,6 +92,7 @@ def getRandomChests(numChests):
         newChest = (random.randint(0, 59), random.randint(0, 14))
         if newChest not in chests:  # Make sure a chest is not already here.
             chests.add(newChest)
+    # chests = {(47,2), (48,11), (54,2)}  # ???? DEBUG, COMMENT OUT ????
     return chests
 
 
